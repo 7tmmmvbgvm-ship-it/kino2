@@ -154,13 +154,13 @@ function sheet(){
   +'<label>Статус</label><div class="seg" data-g="status">'+Object.keys(STATUS).map(function(k){return '<button data-v="'+k+'" aria-pressed="'+(e.status===k)+'">'+STATUS[k]+'</button>'}).join("")+'</div>'
   +(e.type==="series"?'<label for="f-ep">Где остановился</label><input class="in" id="f-ep" value="'+esc(e.ep)+'" placeholder="Сезон 2, серия 3">':"")
   +'<label>Жанры</label><div class="gpick">'+GL(e).map(function(g){return '<button class="gen" data-g2="'+g+'" aria-pressed="'+((e.genres||[]).indexOf(g)>-1)+'">'+g+'</button>'}).join("")+'</div>'
-  +'<label for="f-dir">Режиссёр</label><input class="in" id="f-dir" value="'+esc(e.dir)+'"><label for="f-year">Год выхода</label><input class="in" id="f-year" inputmode="numeric" maxlength="4" value="'+esc(e.year)+'">'
+  +'<label for="f-dir">Режиссёр</label><input class="in" id="f-dir" value="'+esc(e.dir)+'"><label for="f-year">Год выхода</label><input class="in" id="f-year" inputmode="numeric" maxlength="4" value="'+esc(e.year)+'"><label for="f-ov">Описание</label><textarea class="in" id="f-ov" style="height:110px">'+esc(e.ov)+'</textarea>'
   +'<label>Моя оценка</label><div class="rate">'+r+'<span class="num">'+(e.rating?e.rating+"/5":"")+'</span></div>'
   +(e.status==="done"?'<label for="f-date">Когда посмотрел</label><input class="in" type="date" id="f-date" value="'+esc(e.date)+'">':"")
   +'<label for="f-note">Заметка</label><textarea class="in" id="f-note" placeholder="Что понравилось, с кем смотрел">'+esc(e.note)+'</textarea>'
   +'<div class="acts">'+(e.id?'<button class="btn del" id="del">Удалить</button>':"")+'<button class="btn sec" id="cancel">Отмена</button><button class="btn" id="save">Сохранить</button></div>';
 }
-function grab(){var a=["title","ep","note","date","dir","year"];a.forEach(function(k){var el=$("f-"+k);if(el)edit[k]=el.value})}
+function grab(){var a=["title","ep","note","date","dir","year","ov"];a.forEach(function(k){var el=$("f-"+k);if(el)edit[k]=el.value})}
 function parse(t){return t.split(/\n/).map(function(s){return s.replace(/^[\s\u2022\u25CB\u25CF\u2610\u2611\u2705\-\*\u2013\u2014]+/,"").replace(/^\d+[\.\)]\s+/,"").trim()}).filter(function(s){return s.length>0})}
 function isheet(){
   var e=edit;
@@ -228,6 +228,7 @@ function pickTm(mt,id){
     e.genres=(d.genres||[]).map(function(g){return GMAP[g.name]||g.name});
     var ds=mt==="tv"?(d.created_by||[]):((d.credits&&d.credits.crew)||[]).filter(function(c){return c.job==="Director"});
     e.dir=ds.map(function(c){return c.name}).join(", ");
+    e.ov=d.overview||e.ov||"";
     if(!d.poster_path){delete e.tm;sheet();return}
     fitPoster("https://image.tmdb.org/t/p/w342"+d.poster_path,function(p){if(!edit||edit.tm!==t)return;e.poster=p;delete e.tm;sheet()});
   }).catch(function(){if(edit&&edit.tm===t){t.msg="Не получилось загрузить данные.";tsheet()}});
@@ -241,7 +242,7 @@ function csheet(){
   $("sheet").innerHTML='<h2>Настройки</h2><label for="f-key">Ключ TMDB (API key)</label><input class="in" id="f-key" value="'+esc(key())+'" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="вставь ключ сюда"><p class="hint">Подойдёт и короткий «API Key», и длинный «Read Access Token».</p>'
   +'<label>Резервная копия</label><textarea class="in" id="f-bk" style="height:90px" placeholder="Тут появится копия. Или вставь свою, чтобы восстановить."></textarea>'
   +'<div class="seg" style="margin-top:8px"><button id="bkcopy">Скопировать копию</button><button id="bkrest">Восстановить</button></div>'
-  +'<label>Постеры и данные</label><div class="seg"><button id="bgo">Подтянуть для всех</button><button id="bstop">Стоп</button></div><p class="hint">Для записей без постера ищет фильм в TMDB и заполняет постер, жанры, режиссёра и год. Нужен VPN, не закрывай приложение. Занимает 1–3 минуты.</p><p class="hint" id="cmsg"></p><div class="acts"><button class="btn sec" id="cclose">Закрыть</button><button class="btn" id="csave">Сохранить ключ</button></div>';
+  +'<label>Постеры и данные</label><div class="seg"><button id="bgo">Подтянуть для всех</button><button id="bstop">Стоп</button></div><p class="hint">Для записей без постера или описания ищет фильм в TMDB и заполняет постер, описание, жанры, режиссёра и год. Нужен VPN, не закрывай приложение. Занимает 1–3 минуты.</p><p class="hint" id="cmsg"></p><div class="acts"><button class="btn sec" id="cclose">Закрыть</button><button class="btn" id="csave">Сохранить ключ</button></div>';
 }
 function cfgClick(t){
   var m=$("cmsg");
@@ -283,41 +284,42 @@ function pickBest(res,it,y){
 function fillOne(it){
   var c=cleanQ(it.title);
   return tget("/search/multi","&include_adult=false&query="+encodeURIComponent(c.q)).then(function(d){
-    var b=pickBest(d.results||[],it,c.y);
+    var b=pickBest(d.results||[],it,c.y||it.year||"");
     if(!b)return false;
     return tget("/"+b.media_type+"/"+b.id,"&append_to_response=credits").then(function(dd){
       if(!it.year)it.year=(dd.release_date||dd.first_air_date||"").slice(0,4);
       if(!(it.genres&&it.genres.length))it.genres=(dd.genres||[]).map(function(g){return GMAP[g.name]||g.name});
       if(!it.dir){var ds=b.media_type==="tv"?(dd.created_by||[]):((dd.credits&&dd.credits.crew)||[]).filter(function(x){return x.job==="Director"});it.dir=ds.map(function(x){return x.name}).join(", ")}
+      if(!it.ov&&dd.overview)it.ov=dd.overview;
       if(!it.poster&&dd.poster_path){
         return new Promise(function(res){fitPoster("https://image.tmdb.org/t/p/w185"+dd.poster_path,function(p){it.poster=p;res(true)},true)});
       }
-      return !!it.poster;
+      return true;
     });
   });
 }
 function bulkRun(){
   if(bulk.run)return;
   if(!key()){bmsg("Сначала впиши и сохрани ключ TMDB.");return}
-  var todo=items.filter(function(x){return !x.poster});
-  if(!todo.length){bmsg("У всех записей уже есть постеры.");return}
+  var todo=items.filter(function(x){return !x.poster||!x.ov});
+  if(!todo.length){bmsg("У всех записей уже есть постеры и описания.");return}
   bulk={run:true,stop:false};
   var i=0,ok=0,errs=0,miss=[];
   function finish(note){
     bulk.run=false;save();draw();
-    var t=note||("Готово: постеры найдены для "+ok+" из "+todo.length+".");
+    var t=note||("Готово: данные найдены для "+ok+" из "+todo.length+".");
     if(miss.length&&!note)t+=" Не нашлось: "+miss.slice(0,12).join(", ")+(miss.length>12?" и ещё "+(miss.length-12):"")+".";
     bmsg(t);
   }
   function next(){
-    if(bulk.stop){finish("Остановлено. Найдено постеров: "+ok+". Запусти ещё раз, чтобы продолжить.");return}
+    if(bulk.stop){finish("Остановлено. Найдено в базе: "+ok+". Запусти ещё раз, чтобы продолжить.");return}
     if(i>=todo.length){finish();return}
     var it=todo[i++];
     bmsg("Обработано "+(i-1)+" из "+todo.length+", найдено "+ok+"…");
     fillOne(it).then(function(f){errs=0;if(f)ok++;else miss.push(it.title)})
     .catch(function(){errs++;miss.push(it.title)})
     .then(function(){
-      if(errs>=5){finish("Остановлено: запросы не проходят. Проверь VPN, интернет и ключ. Найдено постеров: "+ok+".");return}
+      if(errs>=5){finish("Остановлено: запросы не проходят. Проверь VPN, интернет и ключ. Найдено в базе: "+ok+".");return}
       if(i%10===0){save();draw()}
       setTimeout(next,120);
     });
