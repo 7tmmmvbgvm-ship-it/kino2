@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Киноплейлист</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Киноплейлист">
+<link rel="apple-touch-icon" href="icon.png">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F5F5F3;--card:#fff;--ink:#1D1D1F;--mute:#77777C;--line:#E3E3E0;--pink:#3B4A66;--mint:#3B4A66;--sun:#C9A24B;--blue:#3B4A66;--chip:#ECECE9;--on:#fff;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141415;--card:#1E1E20;--ink:#EEEEEC;--mute:#9A9AA0;--line:#323235;--chip:#29292C;--pink:#A9B6D6;--mint:#A9B6D6;--blue:#A9B6D6;--sun:#D2B26A;--on:#14151A}}
+:root[data-theme="dark"]{--bg:#141415;--card:#1E1E20;--ink:#EEEEEC;--mute:#9A9AA0;--line:#323235;--chip:#29292C;--pink:#A9B6D6;--mint:#A9B6D6;--blue:#A9B6D6;--sun:#D2B26A;--on:#14151A}
+html{scroll-padding-top:env(safe-area-inset-top,0px);color-scheme:light dark}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--ink);font:500 16px/1.4 Nunito,system-ui,-apple-system,"Segoe UI",sans-serif}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.app{max-width:480px;margin:0 auto;padding:20px 16px 110px}
+h1{font-size:30px;font-weight:900;margin:4px 0 2px;letter-spacing:-.5px}
+.sub{color:var(--mute);margin:0 0 16px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.stat{background:var(--card);border-radius:18px;padding:12px 8px;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,.06),0 8px 18px rgba(0,0,0,.07)}
+.stat b{display:block;font-size:24px;font-weight:900}
+.stat span{font-size:12px;color:var(--mute)}
+
+.tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:6px}
+.tab{flex:none;padding:8px 14px;border-radius:99px;background:var(--chip);color:var(--mute);font-weight:700;font-size:14px}
+.tab[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.row{display:flex;gap:8px;margin:8px 0 14px}
+.search{flex:1;padding:11px 14px;border-radius:14px;border:2px solid transparent;background:var(--card)}
+.search:focus{outline:none;border-color:var(--blue)}
+.kind{display:flex;background:var(--chip);border-radius:14px;padding:3px}
+.kind button{padding:8px 10px;border-radius:11px;opacity:.55;display:grid;place-items:center;color:var(--ink)}
+.kind button[aria-pressed="true"]{background:var(--card);opacity:1;box-shadow:0 2px 6px rgba(0,0,0,.18)}
+.item,.tres{display:flex;gap:12px;align-items:center;background:var(--card);border-radius:20px;padding:10px;margin-bottom:10px;width:100%;text-align:left;box-shadow:0 1px 2px rgba(0,0,0,.06),0 8px 18px rgba(0,0,0,.07)}
+.poster{flex:none;width:58px;height:78px;border-radius:14px;display:grid;place-items:center;font-size:26px;color:#fff;font-weight:900;position:relative;overflow:hidden;text-shadow:0 2px 6px rgba(0,0,0,.35);box-shadow:0 6px 14px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.3),inset 0 -12px 18px rgba(0,0,0,.2)}
+.poster::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(160deg,rgba(255,255,255,.3),rgba(255,255,255,0) 45%)}
+.info{flex:1;min-width:0}
+.t{font-weight:900;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.m{font-size:13px;color:var(--mute);margin:1px 0 4px}
+.stars{color:var(--sun);letter-spacing:1px;font-size:16px;text-shadow:0 1px 2px rgba(0,0,0,.28)}
+.stars i{color:var(--line);font-style:normal}
+.badge{display:inline-block;font-size:12px;font-weight:800;padding:3px 9px;border-radius:99px;margin-right:6px}
+.s-done{background:var(--ink);color:var(--bg)}.s-now{background:var(--chip);color:var(--ink)}.s-want{background:none;color:var(--mute);box-shadow:inset 0 0 0 1px var(--line)}
+.empty{text-align:center;color:var(--mute);padding:40px 20px}
+.empty big{display:block;font-size:48px}
+.fab{position:fixed;right:max(16px,calc(50% - 224px));bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--pink);color:var(--on);font-weight:800;padding:15px 22px;border-radius:99px;box-shadow:0 6px 16px #00000026;font-size:16px}
+.fab:active{transform:scale(.96)}
+.ov{position:fixed;inset:0;background:#00000066;display:none;align-items:flex-end;justify-content:center;z-index:20}
+.ov.on{display:flex}
+.sheet{background:var(--bg);width:100%;max-width:480px;max-height:92%;overflow:auto;border-radius:28px 28px 0 0;padding:20px 18px calc(24px + env(safe-area-inset-bottom,0px));animation:up .22s ease-out}
+@keyframes up{from{transform:translateY(40px);opacity:0}}
+@media (prefers-reduced-motion:reduce){.sheet{animation:none}}
+.sheet h2{margin:0 0 14px;font-size:22px;font-weight:900}
+label{display:block;font-weight:700;font-size:14px;color:var(--mute);margin:12px 0 6px}
+.in{width:100%;padding:12px 14px;border-radius:14px;border:2px solid transparent;background:var(--card)}
+.in:focus{outline:none;border-color:var(--blue)}
+textarea.in{resize:none;height:76px}
+.seg{display:flex;gap:6px}
+.seg button{flex:1;padding:10px 4px;border-radius:12px;background:var(--chip);font-weight:700;font-size:14px;color:var(--mute)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.rate{display:flex;gap:4px;align-items:center}
+.rate button{font-size:34px;line-height:1;color:var(--line);padding:2px}
+.rate button.on{color:var(--sun);text-shadow:0 2px 4px rgba(0,0,0,.28)}
+.rate .num{margin-left:auto;font-weight:900;font-size:20px}
+.acts{display:flex;gap:8px;margin-top:20px}
+.btn{flex:1;padding:14px;border-radius:16px;font-weight:800;background:var(--pink);color:var(--on)}
+.btn.sec{background:var(--chip);color:var(--ink);flex:none;padding:14px 18px}
+.btn.del{background:none;color:#E5484D;flex:none}
+.pu{display:flex;gap:14px;align-items:center;margin-bottom:6px}.poster.big{width:84px;height:112px;font-size:34px}.pu .btn{display:block;width:100%;margin-bottom:4px;padding:11px}.hint{font-size:12px;color:var(--mute);margin:6px 0 0}
+.gens{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:8px}.gpick{display:flex;flex-wrap:wrap;gap:6px}
+.gen{flex:none;padding:5px 11px;border-radius:99px;font-size:13px;font-weight:700;background:none;color:var(--mute);box-shadow:inset 0 0 0 1px var(--line)}.gen[aria-pressed="true"]{background:var(--ink);color:var(--bg);box-shadow:none}
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>Мой киноплейлист</h1>
+  <p class="sub">Всё, что посмотрел и что ещё хочешь</p>
+  <p class="hint" id="sync" style="margin:-10px 0 8px">Данные хранятся на этом телефоне</p>
+  <div style="display:flex;gap:6px;margin-bottom:14px"><button class="gen" id="imp">Импорт из заметок</button><button class="gen" id="cfg">Настройки и копия</button></div>
+  <div class="stats" id="stats"></div>
+  <div class="tabs" id="tabs"></div>
+  <div class="row">
+    <input class="search" id="q" type="search" placeholder="Поиск по названию" aria-label="Поиск">
+    <div class="kind" id="kind"></div>
+  </div>
+  <div class="gens" id="gens"></div>
+  <div id="list"></div>
+</div>
+<button class="fab" id="add">+ Добавить</button>
+
+<div class="ov" id="ov"><div class="sheet" id="sheet" role="dialog" aria-modal="true"></div></div>
+
+<script>
+var STATUS={want:"Хочу посмотреть",now:"Смотрю",done:"Просмотрено"};
+var GENRES=["Драма","Комедия","Боевик","Фантастика","Триллер","Ужасы","Фэнтези","Мелодрама","Детектив","Криминал","Документальный","Аниме","Мультфильм","Приключения","Семейный","Военный","История","Музыка","Вестерн"];
+var GRAD=["#5C6575,#4A5261","#6B6458,#575146","#586B66,#465955","#6A5A66,#564853","#5D6580,#4B526B"];
+var items=[{"date":"","genres":["Фантастика","Драма"],"id":3,"note":"Посоветовал друг","rating":5,"status":"want","title":"Интерстеллар","type":"movie"},{"date":"2026-10-26","ep":"","genres":[],"id":10,"note":"","rating":5,"status":"done","title":"побег из шоушенка","type":"movie"},{"id":11,"rating":0,"status":"want","title":"Глаз","type":"movie"},{"id":12,"rating":0,"status":"want","title":"Здесь курят","type":"movie"},{"id":13,"rating":0,"status":"want","title":"Двойник дьявола","type":"movie"},{"id":14,"rating":0,"status":"done","title":"Достучаться до небес","type":"movie"},{"id":15,"rating":0,"status":"done","title":"Новейший завет","type":"movie"},{"id":16,"rating":0,"status":"done","title":"Глухой пролёт новейший завет","type":"movie"},{"id":17,"rating":0,"status":"done","title":"127 ударов в минуту","type":"movie"},{"id":18,"rating":0,"status":"done","title":"Кингсман","type":"movie"},{"id":19,"rating":0,"status":"want","title":"Зов предков","type":"movie"},{"id":20,"rating":0,"status":"want","title":"Просто помиловать","type":"movie"},{"id":21,"rating":0,"status":"want","title":"Белые люди не умеют прыгать","type":"movie"},{"id":22,"rating":0,"status":"want","title":"Детство Шелдона","type":"series"},{"id":23,"rating":0,"status":"want","title":"Дьявол в деталях","type":"movie"},{"id":24,"rating":0,"status":"done","title":"Договор молчания","type":"movie"},{"id":25,"rating":0,"status":"want","title":"Горячие головы","type":"movie"},{"id":26,"rating":0,"status":"done","title":"В западне","type":"movie"},{"id":27,"rating":0,"status":"done","title":"Тело","type":"movie"},{"id":28,"rating":0,"status":"want","title":"В конце туннеля","type":"movie"},{"id":29,"rating":0,"status":"want","title":"Крепкий сон","type":"movie"},{"id":30,"rating":0,"status":"want","title":"Гнездо землеройки","type":"movie"},{"id":31,"rating":0,"status":"want","title":"Между нами горы","type":"movie"},{"id":32,"rating":0,"status":"want","title":"Эквилибриум","type":"movie"},{"id":33,"rating":0,"status":"want","title":"Нас других не будет","type":"movie"},{"id":34,"rating":0,"status":"done","title":"Дитя робота","type":"movie"},{"id":35,"rating":0,"status":"want","title":"Спасти рядового Райна","type":"movie"},{"id":36,"rating":0,"status":"want","title":"Антикилер","type":"movie"},{"id":37,"rating":0,"status":"done","title":"Чёрный ящик","type":"movie"},{"id":38,"rating":0,"status":"want","title":"Стена","type":"movie"},{"id":39,"rating":0,"status":"done","title":"Тебе стоило уйти","type":"movie"},{"id":40,"rating":0,"status":"want","title":"Последняя из нас","type":"series"},{"id":41,"rating":0,"status":"want","title":"Невероятная история острова роз","type":"movie"},{"id":42,"rating":0,"status":"want","title":"Стальные двери","type":"movie"},{"id":43,"rating":0,"status":"done","title":"Геошторм","type":"movie"},{"id":44,"rating":0,"status":"done","title":"Уличный кот по имени Боб","type":"movie"},{"id":45,"rating":0,"status":"want","title":"Озарена","type":"movie"},{"id":46,"rating":0,"status":"want","title":"Трансфигурация","type":"movie"},{"id":47,"rating":0,"status":"want","title":"Пылающее море","type":"movie"},{"id":48,"rating":0,"status":"want","title":"Призрачная шестерка","type":"movie"},{"id":49,"rating":0,"status":"want","title":"Иные","type":"movie"},{"id":50,"rating":0,"status":"done","title":"Оружейный барон","type":"movie"},{"id":51,"rating":0,"status":"done","title":"Рейс 7500","type":"movie"},{"id":52,"rating":0,"status":"want","title":"Самая опасная игра","type":"movie"},{"id":53,"rating":0,"status":"want","title":"Кроваво красное небо","type":"movie"},{"id":54,"rating":0,"status":"want","title":"Легион","type":"movie"},{"id":55,"rating":0,"status":"want","title":"Тишина","type":"movie"},{"id":56,"rating":0,"status":"done","title":"Аферист из Тиндера","type":"movie"},{"id":57,"rating":0,"status":"want","title":"Синдром","type":"movie"},{"id":58,"rating":0,"status":"want","title":"Забирая жизни","type":"movie"},{"id":59,"rating":0,"status":"want","title":"Танатоморфоз","type":"movie"},{"id":60,"rating":0,"status":"want","title":"Он тебя не отпустит","type":"movie"},{"id":61,"rating":0,"status":"want","title":"Несчастный случай","type":"movie"},{"id":62,"rating":0,"status":"done","title":"Эксперимент офис","type":"movie"},{"id":63,"rating":0,"status":"want","title":"Красное уведомление","type":"movie"},{"id":64,"rating":0,"status":"want","title":"Преследование","type":"movie"},{"id":65,"rating":0,"status":"want","title":"Не отпускай","type":"movie"},{"id":66,"rating":0,"status":"want","title":"В тихом омуте","type":"movie"},{"id":67,"rating":0,"status":"done","title":"Платформа","type":"movie"},{"id":68,"rating":0,"status":"want","title":"Нюрнбергский процесс","type":"movie"},{"id":69,"rating":0,"status":"done","title":"Эксперимент Белко","type":"movie"},{"id":70,"rating":0,"status":"want","title":"Рассвет апокалипсиса","type":"movie"},{"id":71,"rating":0,"status":"done","title":"Нулевой пациент","type":"movie"},{"id":72,"rating":0,"status":"want","title":"Гравити Фолс","type":"series"},{"id":73,"rating":0,"status":"want","title":"Большие деньги","type":"movie"},{"id":74,"rating":0,"status":"want","title":"Голяк","type":"series"},{"id":75,"rating":0,"status":"want","title":"Приговор","type":"movie"},{"id":76,"rating":0,"status":"want","title":"Не оглядывайся","type":"movie"},{"id":77,"rating":0,"status":"want","title":"Ледяной драйв","type":"movie"},{"id":78,"rating":0,"status":"want","title":"Шоу Трумана","type":"movie"},{"id":79,"rating":0,"status":"done","title":"Быстрее пули","type":"movie"},{"id":80,"note":"про Биги","rating":0,"status":"want","title":"Город лжи","type":"movie"},{"id":81,"rating":0,"status":"want","title":"Плохие парни","type":"movie"},{"id":82,"note":"казахи","rating":0,"status":"want","title":"Районы","type":"movie"},{"id":83,"rating":0,"status":"want","title":"Вторжение 2021","type":"movie"},{"id":84,"rating":0,"status":"done","title":"Чудаки навсегда","type":"movie"},{"id":85,"rating":0,"status":"want","title":"Морской бой","type":"movie"},{"id":86,"rating":0,"status":"done","title":"Выстрел в пустоту","type":"movie"},{"id":87,"rating":0,"status":"want","title":"Проклятие Кинтанара","type":"movie"},{"id":88,"rating":0,"status":"want","title":"Прежде, чем я усну","type":"movie"},{"id":89,"rating":0,"status":"want","title":"Купэ #6","type":"movie"},{"id":90,"rating":0,"status":"done","title":"13 жизней","type":"movie"},{"id":91,"rating":0,"status":"done","title":"Падение Луны","type":"movie"},{"id":92,"rating":0,"status":"want","title":"Стрелок","type":"movie"},{"id":93,"note":"Янковский","rating":0,"status":"done","title":"Про Лизу Алерт","type":"series"},{"id":94,"rating":0,"status":"want","title":"Калигула","type":"movie"},{"id":95,"rating":0,"status":"want","title":"Рэмбо: первая кровь","type":"movie"},{"id":96,"rating":0,"status":"want","title":"Кот мастер на все лапки опять грустит","type":"movie"},{"id":97,"rating":0,"status":"want","title":"22 пули","type":"movie"},{"date":"2026-10-26","id":98,"note":"","rating":0,"status":"done","title":"Гангстер, коп и дьявол","type":"movie"},{"id":99,"rating":0,"status":"want","title":"Беглец","type":"movie"},{"id":100,"rating":0,"status":"want","title":"Захваченный рейс","type":"movie"},{"id":101,"rating":0,"status":"done","title":"Ночной портье","type":"movie"},{"id":102,"rating":0,"status":"want","title":"Эйр большой прыжок","type":"movie"},{"id":103,"rating":0,"status":"want","title":"Снегопад","type":"movie"},{"id":104,"rating":0,"status":"want","title":"Гость","type":"movie"},{"id":105,"rating":0,"status":"want","title":"Лара Крофт","type":"movie"},{"id":106,"rating":0,"status":"done","title":"Гнев человеческий","type":"movie"},{"id":107,"rating":0,"status":"want","title":"На границе миров","type":"movie"},{"id":108,"rating":0,"status":"want","title":"Наблюдающий","type":"movie"},{"id":109,"rating":0,"status":"want","title":"Эффект Манделы","type":"movie"},{"id":110,"rating":0,"status":"want","title":"Аудитор","type":"movie"},{"id":111,"rating":0,"status":"want","title":"Провинциалы","type":"movie"},{"id":112,"rating":0,"status":"want","title":"В объятиях лжи","type":"movie"},{"id":113,"rating":0,"status":"want","title":"Хэллоуин","type":"movie"},{"id":114,"rating":0,"status":"want","title":"Таинственная река","type":"movie"},{"id":115,"rating":0,"status":"want","title":"Пенсионный план","type":"movie"},{"id":116,"rating":0,"status":"want","title":"За пивом","type":"movie"},{"id":117,"rating":0,"status":"want","title":"Чудесная история Генри Шугара","type":"movie"},{"id":118,"rating":0,"status":"want","title":"По наклонной","type":"movie"},{"id":119,"rating":0,"status":"want","title":"Меняющие реальность","type":"movie"},{"id":120,"rating":0,"status":"want","title":"Неистовый","type":"movie"},{"id":121,"rating":0,"status":"want","title":"1922","type":"movie"},{"id":122,"rating":0,"status":"want","title":"Книга Илая","type":"movie"},{"id":123,"rating":0,"status":"want","title":"Из Парижа с любовью","type":"movie"},{"id":124,"rating":0,"status":"done","title":"Звук свободы","type":"movie"},{"id":125,"rating":0,"status":"done","title":"План побега","type":"movie"},{"id":126,"rating":0,"status":"want","title":"Крестный отец Гарлема","type":"movie"},{"id":127,"rating":0,"status":"want","title":"На краю","type":"movie"},{"id":128,"rating":0,"status":"want","title":"Волчья яма 2","type":"movie"},{"id":129,"rating":0,"status":"done","title":"Убийца/Убийца 2","type":"movie"},{"id":130,"rating":0,"status":"done","title":"Казанова","type":"series"},{"id":131,"rating":0,"status":"want","title":"Бесславные ублюдки","type":"movie"},{"id":132,"rating":0,"status":"want","title":"Бесконечность (2021)","type":"movie"},{"id":133,"rating":0,"status":"done","title":"Меню 2022","type":"movie"},{"id":134,"rating":0,"status":"want","title":"Охота на воров","type":"movie"},{"id":135,"rating":0,"status":"want","title":"Расплата","type":"movie"},{"id":136,"rating":0,"status":"done","title":"Чудо на Гудзоне","type":"movie"},{"id":137,"rating":0,"status":"done","title":"Список подозреваемых","type":"movie"},{"id":138,"rating":0,"status":"want","title":"Анна 2021","type":"movie"},{"id":139,"rating":0,"status":"want","title":"Ударная волна: битва за Гонконг","type":"movie"},{"id":140,"rating":0,"status":"want","title":"Я был там 2022","type":"movie"},{"id":141,"note":"казахи","rating":0,"status":"want","title":"Приговор","type":"movie"},{"id":142,"rating":0,"status":"want","title":"Хакер","type":"movie"},{"id":143,"rating":0,"status":"want","title":"Большая игра","type":"movie"},{"id":144,"rating":0,"status":"want","title":"Пропавшая без вести","type":"movie"},{"id":145,"rating":0,"status":"done","title":"Время первых","type":"movie"},{"id":146,"rating":0,"status":"want","title":"Соучастник","type":"movie"},{"id":147,"rating":0,"status":"done","title":"Вышка","type":"movie"},{"id":148,"rating":0,"status":"want","title":"Турист","type":"movie"},{"id":149,"rating":0,"status":"done","title":"Зависнуть в Палм-Спрингс","type":"movie"},{"id":150,"rating":0,"status":"done","title":"8 миля","type":"movie"},{"id":151,"rating":0,"status":"want","title":"Пианист","type":"movie"},{"id":152,"rating":0,"status":"want","title":"Эдем (2024)","type":"movie"}];
+var SVG='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
+var ICO={all:SVG+'<rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/></svg>',movie:SVG+'<rect x="3" y="4" width="18" height="16" rx="3"/><path d="M8 4v16M16 4v16M3 9h5M3 15h5M16 9h5M16 15h5"/></svg>',series:SVG+'<rect x="3" y="7" width="18" height="13" rx="3"/><path d="M8 2.5l4 4 4-4"/></svg>'};
+var nid=10,tab="all",kind="all",gen="",term="",edit=null;
+try{var s=localStorage.getItem("kino");if(s){var p=JSON.parse(s);if(Array.isArray(p)){items=p;nid=Math.max.apply(null,p.map(function(x){return x.id}).concat([9]))+1}}}catch(e){}
+nid=Math.max.apply(null,items.map(function(x){return x.id}).concat([9]))+1;
+var col=null,seeded=false,last={},q=Promise.resolve();
+function save(){try{localStorage.setItem("kino",JSON.stringify(items))}catch(e){}sync()}
+function snapLast(){last={};items.forEach(function(x){last[x.id]=JSON.stringify(x)})}
+function sync(){
+  if(!col)return;
+  if(!seeded){seeded=true;last={}}
+  var cur={},ops=[];items.forEach(function(x){cur[x.id]=1});
+  items.forEach(function(x){var j=JSON.stringify(x);if(last[x.id]!==j){last[x.id]=j;ops.push(function(){return col.doc("e"+x.id).set(JSON.parse(j))})}});
+  Object.keys(last).forEach(function(id){if(!cur[id]){delete last[id];ops.push(function(){return col.doc("e"+id).delete()})}});
+  ops.forEach(function(op){q=q.then(op).catch(function(){$("sync").textContent="Не удалось сохранить в аккаунте, данные пока только на этом устройстве"})});
+}
+function esc(t){return String(t||"").replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function stars(n){var o="";for(var i=1;i<=5;i++)o+=i<=n?"★":"<i>★</i>";return o}
+function $(id){return document.getElementById(id)}
+function draw(){
+  var done=items.filter(function(x){return x.status==="done"}),rated=items.filter(function(x){return x.rating>0});
+  var avg=rated.length?(rated.reduce(function(a,x){return a+x.rating},0)/rated.length).toFixed(1):"–";
+  $("stats").innerHTML='<div class="stat"><b>'+done.length+'</b><span>просмотрено</span></div><div class="stat"><b>'+avg+'</b><span>средняя оценка</span></div><div class="stat"><b>'+items.filter(function(x){return x.status==="want"}).length+'</b><span>в планах</span></div>';
+  var tabs=[["all","Все"],["want","Хочу"],["now","Смотрю"],["done","Просмотрено"]];
+  $("tabs").innerHTML=tabs.map(function(t){return '<button class="tab" data-tab="'+t[0]+'" aria-pressed="'+(tab===t[0])+'">'+t[1]+'</button>'}).join("");
+  var ks=[["all","Все"],["movie","Фильмы"],["series","Сериалы"]];
+  $("kind").innerHTML=ks.map(function(k){return '<button data-kind="'+k[0]+'" aria-label="'+k[1]+'" aria-pressed="'+(kind===k[0])+'">'+ICO[k[0]]+'</button>'}).join("");
+  var used=[];items.forEach(function(x){(x.genres||[]).forEach(function(g){if(used.indexOf(g)<0)used.push(g)})});
+  used.sort(function(a,b){return GENRES.indexOf(a)-GENRES.indexOf(b)});
+  if(gen&&used.indexOf(gen)<0)gen="";
+  $("gens").style.display=used.length?"flex":"none";
+  $("gens").innerHTML=used.map(function(g){return '<button class="gen" data-gen="'+esc(g)+'" aria-pressed="'+(gen===g)+'">'+esc(g)+'</button>'}).join("");
+  var f=items.filter(function(x){return (tab==="all"||x.status===tab)&&(kind==="all"||x.type===kind)&&(!gen||(x.genres||[]).indexOf(gen)>-1)&&x.title.toLowerCase().indexOf(term.toLowerCase())>-1}).reverse();
+  if(!f.length){$("list").innerHTML='<div class="empty"><big>🍿</big>'+(items.length?"Ничего не нашлось. Попробуй другой фильтр.":"Тут пока пусто. Нажми «Добавить» и запиши первый фильм.")+'</div>';return}
+  $("list").innerHTML=f.map(function(x){
+    var g=GRAD[x.id%GRAD.length];
+    return '<button class="item" data-id="'+x.id+'"><div class="poster" style="background:'+(x.poster?'url('+x.poster+') center/cover':'linear-gradient(145deg,'+g+')')+'">'+(x.poster?'':esc(x.title.charAt(0).toUpperCase()))+'</div><div class="info"><div class="t">'+esc(x.title)+'</div><div class="m">'+(x.type==="movie"?"Фильм":"Сериал")+(x.year?" · "+esc(x.year):"")+((x.genres||[]).length?" · "+esc(x.genres.join(", ")):"")+(x.ep?" · "+esc(x.ep):"")+'</div>'+(x.dir?'<div class="m">реж. '+esc(x.dir)+'</div>':'')+'<span class="badge s-'+x.status+'">'+STATUS[x.status]+'</span>'+(x.rating?'<span class="stars" aria-label="Оценка '+x.rating+' из 5">'+stars(x.rating)+'</span>':"")+'</div></button>';
+  }).join("");
+}
+function open(item){
+  edit=item?JSON.parse(JSON.stringify(item)):{id:0,title:"",type:"movie",status:"want",rating:0,note:"",date:"",ep:"",genres:[]};
+  sheet();$("ov").classList.add("on");
+  var t=$("f-title");if(t&&!item)t.focus();
+}
+function sheet(){
+  var e=edit;
+  var r="";for(var i=1;i<=5;i++)r+='<button class="'+(i<=e.rating?"on":"")+'" data-r="'+i+'" aria-label="'+i+' из 5">★</button>';
+  $("sheet").innerHTML='<h2>'+(e.id?"Редактировать":"Новая запись")+'</h2>'
+  +'<div class="pu"><div class="poster big" style="background:'+(e.poster?'url('+e.poster+') center/cover':'linear-gradient(145deg,'+GRAD[e.id%GRAD.length]+')')+'">'+(e.poster?'':esc((e.title||'?').charAt(0).toUpperCase()))+'</div><div style="flex:1"><button class="btn" id="tm" style="display:block;width:100%;margin-bottom:4px;padding:11px">Найти в базе фильмов</button><button class="btn sec" id="pick">'+(e.poster?'Заменить постер':'Загрузить постер')+'</button>'+(e.poster?'<button class="btn del" id="rmp">Убрать постер</button>':'')+'<p class="hint">Картинка из галереи или файлов</p></div></div><input type="file" id="file" accept="image/*" hidden>'
+  +'<label for="f-title">Название</label><input class="in" id="f-title" value="'+esc(e.title)+'" placeholder="Например, Побег из Шоушенка">'
+  +'<label>Что это</label><div class="seg" data-g="type"><button data-v="movie" aria-pressed="'+(e.type==="movie")+'">🎬 Фильм</button><button data-v="series" aria-pressed="'+(e.type==="series")+'">📺 Сериал</button></div>'
+  +'<label>Статус</label><div class="seg" data-g="status">'+Object.keys(STATUS).map(function(k){return '<button data-v="'+k+'" aria-pressed="'+(e.status===k)+'">'+STATUS[k]+'</button>'}).join("")+'</div>'
+  +(e.type==="series"?'<label for="f-ep">Где остановился</label><input class="in" id="f-ep" value="'+esc(e.ep)+'" placeholder="Сезон 2, серия 3">':"")
+  +'<label>Жанры</label><div class="gpick">'+GL(e).map(function(g){return '<button class="gen" data-g2="'+g+'" aria-pressed="'+((e.genres||[]).indexOf(g)>-1)+'">'+g+'</button>'}).join("")+'</div>'
+  +'<label for="f-dir">Режиссёр</label><input class="in" id="f-dir" value="'+esc(e.dir)+'"><label for="f-year">Год выхода</label><input class="in" id="f-year" inputmode="numeric" maxlength="4" value="'+esc(e.year)+'">'
+  +'<label>Моя оценка</label><div class="rate">'+r+'<span class="num">'+(e.rating?e.rating+"/5":"")+'</span></div>'
+  +(e.status==="done"?'<label for="f-date">Когда посмотрел</label><input class="in" type="date" id="f-date" value="'+esc(e.date)+'">':"")
+  +'<label for="f-note">Заметка</label><textarea class="in" id="f-note" placeholder="Что понравилось, с кем смотрел">'+esc(e.note)+'</textarea>'
+  +'<div class="acts">'+(e.id?'<button class="btn del" id="del">Удалить</button>':"")+'<button class="btn sec" id="cancel">Отмена</button><button class="btn" id="save">Сохранить</button></div>';
+}
+function grab(){var a=["title","ep","note","date","dir","year"];a.forEach(function(k){var el=$("f-"+k);if(el)edit[k]=el.value})}
+function parse(t){return t.split(/\n/).map(function(s){return s.replace(/^[\s\u2022\u25CB\u25CF\u2610\u2611\u2705\-\*\u2013\u2014]+/,"").replace(/^\d+[\.\)]\s+/,"").trim()}).filter(function(s){return s.length>0})}
+function isheet(){
+  var e=edit;
+  $("sheet").innerHTML='<h2>Импорт из заметок</h2><p class="hint" style="margin:0 0 8px">В Заметках открой список, выдели всё, нажми «Скопировать» и вставь сюда. Одна строка — одно название.</p>'
+  +'<textarea class="in" id="f-imp" style="height:170px" placeholder="Паразиты&#10;Интерстеллар&#10;Во все тяжкие">'+esc(e.text||"")+'</textarea>'
+  +'<label>Это</label><div class="seg" data-ig="type"><button data-v="movie" aria-pressed="'+(e.type==="movie")+'">🎬 Фильмы</button><button data-v="series" aria-pressed="'+(e.type==="series")+'">📺 Сериалы</button></div>'
+  +'<label>Статус</label><div class="seg" data-ig="status">'+Object.keys(STATUS).map(function(k){return '<button data-v="'+k+'" aria-pressed="'+(e.status===k)+'">'+STATUS[k]+'</button>'}).join("")+'</div>'
+  +'<div class="acts"><button class="btn sec" id="icancel">Отмена</button><button class="btn" id="iadd">Добавить</button></div>';
+}
+function impClick(t){
+  if(t.id==="icancel"){close();return}
+  var g=t.parentElement.dataset.ig;
+  if(g){edit.text=$("f-imp").value;edit[g]=t.dataset.v;isheet();return}
+  if(t.id==="iadd"){
+    var have={};items.forEach(function(x){have[x.title.toLowerCase()]=1});
+    parse($("f-imp").value).reverse().forEach(function(s){
+      if(have[s.toLowerCase()])return;have[s.toLowerCase()]=1;
+      items.push({id:nid++,title:s,type:edit.type,status:edit.status,rating:0,note:"",date:"",ep:"",genres:[]});
+    });
+    save();close();draw();
+  }
+}
+function close(){$("ov").classList.remove("on");edit=null}
+
+var TM="https://api.themoviedb.org/3";
+var GMAP={"Научная фантастика":"Фантастика","НФ и Фэнтези":"Фантастика","Боевик и Приключения":"Боевик","мультфильм":"Мультфильм"};
+function GL(e){var o=GENRES.slice();(e.genres||[]).forEach(function(g){if(o.indexOf(g)<0)o.push(g)});return o}
+function key(){try{return localStorage.getItem("kino_key")||""}catch(e){return ""}}
+function tget(path,extra){var k=key(),h={},u=TM+path+"?language=ru-RU"+(extra||"");if(k.length>60)h.Authorization="Bearer "+k;else u+="&api_key="+encodeURIComponent(k);return fetch(u,{headers:h}).then(function(r){if(!r.ok)throw new Error(r.status);return r.json()})}
+function tsheet(){
+  var t=edit.tm;
+  $("sheet").innerHTML='<h2>Найти в базе фильмов</h2><div style="display:flex;gap:8px"><input class="in" id="f-tq" value="'+esc(t.q)+'" placeholder="Название"><button class="btn" id="tgo" style="flex:none;padding:12px 18px">Найти</button></div>'
+  +(t.msg?'<p class="hint">'+esc(t.msg)+'</p>':'')
+  +t.res.map(function(r){var ti=r.title||r.name||"",yr=(r.release_date||r.first_air_date||"").slice(0,4);
+    return '<button class="tres" data-tid="'+r.id+'" data-tmt="'+r.media_type+'" style="margin-top:10px"><div class="poster" style="width:46px;height:62px;border-radius:10px;font-size:20px;background:'+(r.poster_path?'url(https://image.tmdb.org/t/p/w92'+r.poster_path+') center/cover':'#5C6575')+'">'+(r.poster_path?'':esc(ti.charAt(0)))+'</div><div class="info"><div class="t">'+esc(ti)+'</div><div class="m">'+(r.media_type==="tv"?"Сериал":"Фильм")+(yr?" · "+yr:"")+'</div></div></button>'}).join("")
+  +'<div class="acts"><button class="btn sec" id="tback">Назад</button></div>';
+}
+function tgo(){
+  var t=edit.tm;
+  if(!key()){t.msg="Сначала впиши ключ в «Настройки и копия» на главном экране.";tsheet();return}
+  if(t.q.trim().length<2)return;
+  t.msg="Ищу…";tsheet();
+  tget("/search/multi","&include_adult=false&query="+encodeURIComponent(t.q.trim())).then(function(d){
+    if(!edit||edit.tm!==t)return;
+    t.res=(d.results||[]).filter(function(x){return x.media_type==="movie"||x.media_type==="tv"}).slice(0,12);
+    t.msg=t.res.length?"":"Ничего не нашлось";tsheet();
+  }).catch(function(){if(edit&&edit.tm===t){t.msg="Не получилось. Проверь интернет и ключ.";tsheet()}});
+}
+function fitPoster(u,cb){
+  fetch(u).then(function(r){if(!r.ok)throw 0;return r.blob()}).then(function(b){
+    var im=new Image();
+    im.onload=function(){var W=240,H=320,c=document.createElement("canvas");c.width=W;c.height=H;var x=c.getContext("2d");var s=Math.max(W/im.width,H/im.height),w=im.width*s,h=im.height*s;x.drawImage(im,(W-w)/2,(H-h)/2,w,h);cb(c.toDataURL("image/jpeg",.8))};
+    im.onerror=function(){cb(u)};
+    im.src=URL.createObjectURL(b);
+  }).catch(function(){cb(u)});
+}
+function pickTm(mt,id){
+  var t=edit.tm;t.msg="Загружаю данные…";tsheet();
+  tget("/"+mt+"/"+id,"&append_to_response=credits").then(function(d){
+    if(!edit||edit.tm!==t)return;
+    var e=edit;
+    e.title=d.title||d.name||e.title;
+    e.type=mt==="tv"?"series":"movie";
+    e.year=(d.release_date||d.first_air_date||"").slice(0,4);
+    e.genres=(d.genres||[]).map(function(g){return GMAP[g.name]||g.name});
+    var ds=mt==="tv"?(d.created_by||[]):((d.credits&&d.credits.crew)||[]).filter(function(c){return c.job==="Director"});
+    e.dir=ds.map(function(c){return c.name}).join(", ");
+    if(!d.poster_path){delete e.tm;sheet();return}
+    fitPoster("https://image.tmdb.org/t/p/w342"+d.poster_path,function(p){if(!edit||edit.tm!==t)return;e.poster=p;delete e.tm;sheet()});
+  }).catch(function(){if(edit&&edit.tm===t){t.msg="Не получилось загрузить данные.";tsheet()}});
+}
+function tmClick(t){
+  if(t.id==="tback"){delete edit.tm;sheet();return}
+  if(t.id==="tgo"){edit.tm.q=$("f-tq").value;tgo();return}
+  if(t.dataset.tid){pickTm(t.dataset.tmt,t.dataset.tid)}
+}
+function csheet(){
+  $("sheet").innerHTML='<h2>Настройки</h2><label for="f-key">Ключ TMDB (API key)</label><input class="in" id="f-key" value="'+esc(key())+'" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="вставь ключ сюда"><p class="hint">Подойдёт и короткий «API Key», и длинный «Read Access Token».</p>'
+  +'<label>Резервная копия</label><textarea class="in" id="f-bk" style="height:90px" placeholder="Тут появится копия. Или вставь свою, чтобы восстановить."></textarea>'
+  +'<div class="seg" style="margin-top:8px"><button id="bkcopy">Скопировать копию</button><button id="bkrest">Восстановить</button></div>'
+  +'<p class="hint" id="cmsg"></p><div class="acts"><button class="btn sec" id="cclose">Закрыть</button><button class="btn" id="csave">Сохранить ключ</button></div>';
+}
+function cfgClick(t){
+  var m=$("cmsg");
+  if(t.id==="cclose"){close();return}
+  if(t.id==="csave"){try{localStorage.setItem("kino_key",$("f-key").value.trim());m.textContent="Ключ сохранён"}catch(e){m.textContent="Не удалось сохранить ключ"}return}
+  if(t.id==="bkcopy"){
+    var ta=$("f-bk"),js=JSON.stringify(items);ta.value=js;ta.select();
+    var ok=function(){m.textContent="Копия скопирована. Вставь её в Заметки, чтобы сохранить."};
+    var bad=function(){m.textContent="Выдели текст в поле и скопируй вручную."};
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(js).then(ok).catch(function(){try{document.execCommand("copy");ok()}catch(e){bad()}})}
+    else{try{document.execCommand("copy");ok()}catch(e){bad()}}
+    return}
+  if(t.id==="bkrest"){
+    try{var a=JSON.parse($("f-bk").value);if(!Array.isArray(a)||!a.every(function(x){return x&&x.title}))throw 0;
+      items=a;nid=Math.max.apply(null,items.map(function(x){return x.id||0}).concat([9]))+1;save();draw();m.textContent="Восстановлено записей: "+a.length}
+    catch(e){m.textContent="Не похоже на копию. Вставь текст целиком."}
+  }
+}
+document.addEventListener("keydown",function(e){if(e.key==="Enter"&&e.target.id==="f-tq"&&edit&&edit.tm){e.preventDefault();edit.tm.q=e.target.value;tgo()}});
+document.addEventListener("click",function(ev){
+  var t=ev.target.closest("button,.ov");if(!t)return;
+  if(t.id==="ov"&&ev.target===t){close();return}
+  if(t.dataset.tab){tab=t.dataset.tab;draw();return}
+  if(t.dataset.kind){kind=t.dataset.kind;draw();return}
+  if(t.dataset.gen!==undefined){gen=gen===t.dataset.gen?"":t.dataset.gen;draw();return}
+  if(t.id==="add"){open(null);return}
+  if(t.id==="imp"){edit={imp:1,type:"movie",status:"want",text:""};isheet();$("ov").classList.add("on");return}
+  if(t.id==="cfg"){edit={cfg:1};csheet();$("ov").classList.add("on");return}
+  if(t.classList.contains("item")){open(items.filter(function(x){return x.id==t.dataset.id})[0]);return}
+  if(!edit)return;
+  if(edit.imp){impClick(t);return}
+  if(edit.cfg){cfgClick(t);return}
+  if(edit.tm){tmClick(t);return}
+  if(t.id==="cancel"){close();return}
+  if(t.id==="pick"){$("file").click();return}
+  if(t.id==="tm"){grab();edit.tm={q:edit.title,res:[],msg:""};tsheet();if(edit.title.trim().length>1)tgo();return}
+  if(t.id==="rmp"){grab();edit.poster="";sheet();return}
+  if(t.id==="del"){items=items.filter(function(x){return x.id!==edit.id});save();close();draw();return}
+  if(t.id==="save"){grab();
+    if(!edit.title.trim()){$("f-title").focus();$("f-title").placeholder="Впиши название, чтобы сохранить";return}
+    edit.title=edit.title.trim();
+    if(edit.status==="done"&&!edit.date)edit.date=new Date().toISOString().slice(0,10);
+    if(edit.id){items=items.map(function(x){return x.id===edit.id?edit:x})}else{edit.id=nid++;items.push(edit)}
+    save();close();draw();return}
+  if(t.dataset.g2){grab();edit.genres=edit.genres||[];var gi=edit.genres.indexOf(t.dataset.g2);if(gi>-1)edit.genres.splice(gi,1);else edit.genres.push(t.dataset.g2);sheet();return}
+  var g=t.parentElement.dataset.g;
+  if(g){grab();edit[g]=t.dataset.v;sheet();return}
+  if(t.dataset.r){grab();var n=+t.dataset.r;edit.rating=edit.rating===n?0:n;sheet();return}
+});
+document.addEventListener("change",function(ev){
+  if(ev.target.id!=="file"||!edit)return;
+  var fl=ev.target.files[0];if(!fl)return;
+  var r=new FileReader();
+  r.onload=function(){var im=new Image();im.onload=function(){
+    var W=240,H=320,c=document.createElement("canvas");c.width=W;c.height=H;var x=c.getContext("2d");
+    var s=Math.max(W/im.width,H/im.height),w=im.width*s,h=im.height*s;
+    x.drawImage(im,(W-w)/2,(H-h)/2,w,h);
+    grab();edit.poster=c.toDataURL("image/jpeg",.8);sheet();
+  };im.src=r.result};
+  r.readAsDataURL(fl);
+});
+$("q").addEventListener("input",function(e){term=e.target.value;draw()});
+document.addEventListener("keydown",function(e){if(e.key==="Escape"&&edit)close()});
+draw();
+(async function(){
+  try{
+    if(!window.claude||!window.claude.use)return;
+    var user=await window.claude.use("user"),db=await window.claude.use("db");
+    if(!db||!user)return;
+    var uid=await user.id();if(!uid)return;
+    var c=db.collection("data/users/"+uid),snap=await c.get();
+    col=c;
+    if(snap.size>0){
+      items=snap.docs.map(function(d){return d.data()});
+      nid=Math.max.apply(null,items.map(function(x){return x.id}).concat([9]))+1;
+      seeded=true;snapLast();draw();
+    }
+    $("sync").textContent="Данные сохраняются в твоём аккаунте";
+  }catch(e){col=null}
+})();
+</script>
+</body>
+</html>
