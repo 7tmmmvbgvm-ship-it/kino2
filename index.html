@@ -72,6 +72,7 @@ textarea.in{resize:none;height:76px}
 .btn.sec{background:var(--chip);color:var(--ink);flex:none;padding:14px 18px}
 .btn.del{background:none;color:#E5484D;flex:none}
 .pu{display:flex;gap:14px;align-items:center;margin-bottom:6px}.poster.big{width:84px;height:112px;font-size:34px}.pu .btn{display:block;width:100%;margin-bottom:4px;padding:11px}.hint{font-size:12px;color:var(--mute);margin:6px 0 0}
+.srt{display:flex;gap:8px;align-items:center;margin:-4px 0 12px}.srt select{flex:1;padding:10px 12px;border-radius:12px;border:0;background:var(--card);color:var(--ink);font-weight:700}.srt button{flex:none;width:42px;height:42px;border-radius:12px;background:var(--card);color:var(--ink);font-weight:900;font-size:18px}
 .gens{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:8px}.gpick{display:flex;flex-wrap:wrap;gap:6px}
 .gen{flex:none;padding:5px 11px;border-radius:99px;font-size:13px;font-weight:700;background:none;color:var(--mute);box-shadow:inset 0 0 0 1px var(--line)}.gen[aria-pressed="true"]{background:var(--ink);color:var(--bg);box-shadow:none}
 </style>
@@ -88,6 +89,7 @@ textarea.in{resize:none;height:76px}
     <input class="search" id="q" type="search" placeholder="Поиск по названию" aria-label="Поиск">
     <div class="kind" id="kind"></div>
   </div>
+  <div class="srt"><select id="sort" aria-label="Сортировка"><option value="add">Сначала: по добавлению</option><option value="title">По названию</option><option value="rating">По оценке</option><option value="year">По году выхода</option><option value="date">По дате просмотра</option><option value="genre">По жанру</option><option value="dir">По режиссёру</option></select><button id="sdir" aria-label="Порядок сортировки">↓</button></div>
   <div class="gens" id="gens"></div>
   <div id="list"></div>
 </div>
@@ -132,7 +134,8 @@ function draw(){
   if(gen&&used.indexOf(gen)<0)gen="";
   $("gens").style.display=used.length?"flex":"none";
   $("gens").innerHTML=used.map(function(g){return '<button class="gen" data-gen="'+esc(g)+'" aria-pressed="'+(gen===g)+'">'+esc(g)+'</button>'}).join("");
-  var f=items.filter(function(x){return (tab==="all"||x.status===tab)&&(kind==="all"||x.type===kind)&&(!gen||(x.genres||[]).indexOf(gen)>-1)&&x.title.toLowerCase().indexOf(term.toLowerCase())>-1}).reverse();
+  $("sort").value=sortKey;$("sdir").textContent=sortAsc()?"↑":"↓";
+  var f=sortItems(items.filter(function(x){return (tab==="all"||x.status===tab)&&(kind==="all"||x.type===kind)&&(!gen||(x.genres||[]).indexOf(gen)>-1)&&x.title.toLowerCase().indexOf(term.toLowerCase())>-1}));
   if(!f.length){$("list").innerHTML='<div class="empty"><big>🍿</big>'+(items.length?"Ничего не нашлось. Попробуй другой фильтр.":"Тут пока пусто. Нажми «Добавить» и запиши первый фильм.")+'</div>';return}
   $("list").innerHTML=f.map(function(x){
     var g=GRAD[x.id%GRAD.length];
@@ -326,12 +329,43 @@ function bulkRun(){
   }
   next();
 }
+
+var SORTS=["add","title","rating","year","date","genre","dir"],sortKey="add",sortRev=false;
+try{var sv=JSON.parse(localStorage.getItem("kino_sort")||"null");if(sv&&SORTS.indexOf(sv.k)>-1){sortKey=sv.k;sortRev=!!sv.r}}catch(e){}
+function saveSort(){try{localStorage.setItem("kino_sort",JSON.stringify({k:sortKey,r:sortRev}))}catch(e){}}
+function sortAsc(){return (["title","genre","dir"].indexOf(sortKey)>-1)!==sortRev}
+function sortItems(a){
+  var k=sortKey;
+  if(k==="add"){var r=a.slice().reverse();return sortRev?r.reverse():r}
+  function val(x){
+    if(k==="title")return x.title.toLowerCase();
+    if(k==="rating")return x.rating>0?x.rating:null;
+    if(k==="year")return x.year?+x.year:null;
+    if(k==="date")return x.date||null;
+    if(k==="genre")return (x.genres&&x.genres[0])||null;
+    if(k==="dir")return x.dir?x.dir.toLowerCase():null;
+    return null;
+  }
+  var asc=sortAsc();
+  function cmp(u,v){return typeof u==="string"?u.localeCompare(v,"ru"):(u<v?-1:u>v?1:0)}
+  return a.slice().sort(function(p,q){
+    var u=val(p),v=val(q);
+    if(u===null&&v===null)return p.title.localeCompare(q.title,"ru");
+    if(u===null)return 1;
+    if(v===null)return -1;
+    var c=cmp(u,v);
+    if(c===0)return p.title.localeCompare(q.title,"ru");
+    return asc?c:-c;
+  });
+}
+$("sort").addEventListener("change",function(e){sortKey=e.target.value;sortRev=false;saveSort();draw()});
 document.addEventListener("click",function(ev){
   var t=ev.target.closest("button,.ov");if(!t)return;
   if(t.id==="ov"&&ev.target===t){close();return}
   if(t.dataset.tab){tab=t.dataset.tab;draw();return}
   if(t.dataset.kind){kind=t.dataset.kind;draw();return}
   if(t.dataset.gen!==undefined){gen=gen===t.dataset.gen?"":t.dataset.gen;draw();return}
+  if(t.id==="sdir"){sortRev=!sortRev;saveSort();draw();return}
   if(t.id==="add"){open(null);return}
   if(t.id==="imp"){edit={imp:1,type:"movie",status:"want",text:""};isheet();$("ov").classList.add("on");return}
   if(t.id==="cfg"){edit={cfg:1};csheet();$("ov").classList.add("on");return}
