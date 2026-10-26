@@ -209,10 +209,10 @@ function tgo(){
     t.msg=t.res.length?"":"Ничего не нашлось";tsheet();
   }).catch(function(){if(edit&&edit.tm===t){t.msg="Не получилось. Проверь интернет и ключ.";tsheet()}});
 }
-function fitPoster(u,cb){
+function fitPoster(u,cb,sm){
   fetch(u).then(function(r){if(!r.ok)throw 0;return r.blob()}).then(function(b){
     var im=new Image();
-    im.onload=function(){var W=240,H=320,c=document.createElement("canvas");c.width=W;c.height=H;var x=c.getContext("2d");var s=Math.max(W/im.width,H/im.height),w=im.width*s,h=im.height*s;x.drawImage(im,(W-w)/2,(H-h)/2,w,h);cb(c.toDataURL("image/jpeg",.8))};
+    im.onload=function(){var W=sm?160:240,H=sm?214:320,c=document.createElement("canvas");c.width=W;c.height=H;var x=c.getContext("2d");var s=Math.max(W/im.width,H/im.height),w=im.width*s,h=im.height*s;x.drawImage(im,(W-w)/2,(H-h)/2,w,h);cb(c.toDataURL("image/jpeg",sm?.7:.8))};
     im.onerror=function(){cb(u)};
     im.src=URL.createObjectURL(b);
   }).catch(function(){cb(u)});
@@ -241,11 +241,13 @@ function csheet(){
   $("sheet").innerHTML='<h2>Настройки</h2><label for="f-key">Ключ TMDB (API key)</label><input class="in" id="f-key" value="'+esc(key())+'" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="вставь ключ сюда"><p class="hint">Подойдёт и короткий «API Key», и длинный «Read Access Token».</p>'
   +'<label>Резервная копия</label><textarea class="in" id="f-bk" style="height:90px" placeholder="Тут появится копия. Или вставь свою, чтобы восстановить."></textarea>'
   +'<div class="seg" style="margin-top:8px"><button id="bkcopy">Скопировать копию</button><button id="bkrest">Восстановить</button></div>'
-  +'<p class="hint" id="cmsg"></p><div class="acts"><button class="btn sec" id="cclose">Закрыть</button><button class="btn" id="csave">Сохранить ключ</button></div>';
+  +'<label>Постеры и данные</label><div class="seg"><button id="bgo">Подтянуть для всех</button><button id="bstop">Стоп</button></div><p class="hint">Для записей без постера ищет фильм в TMDB и заполняет постер, жанры, режиссёра и год. Нужен VPN, не закрывай приложение. Занимает 1–3 минуты.</p><p class="hint" id="cmsg"></p><div class="acts"><button class="btn sec" id="cclose">Закрыть</button><button class="btn" id="csave">Сохранить ключ</button></div>';
 }
 function cfgClick(t){
   var m=$("cmsg");
   if(t.id==="cclose"){close();return}
+  if(t.id==="bgo"){bulkRun();return}
+  if(t.id==="bstop"){bulk.stop=true;bmsg("Останавливаю…");return}
   if(t.id==="csave"){try{localStorage.setItem("kino_key",$("f-key").value.trim());m.textContent="Ключ сохранён"}catch(e){m.textContent="Не удалось сохранить ключ"}return}
   if(t.id==="bkcopy"){
     var ta=$("f-bk"),js=JSON.stringify(items);ta.value=js;ta.select();
@@ -261,6 +263,67 @@ function cfgClick(t){
   }
 }
 document.addEventListener("keydown",function(e){if(e.key==="Enter"&&e.target.id==="f-tq"&&edit&&edit.tm){e.preventDefault();edit.tm.q=e.target.value;tgo()}});
+
+var bulk={run:false,stop:false};
+function bmsg(t){var m=$("cmsg");if(m)m.textContent=t}
+function cleanQ(t){
+  var y="";
+  var q=t.replace(/\s*\((\d{4})\)\s*$/,function(m,a){y=a;return ""}).replace(/\s+((?:19|20)\d{2})$/,function(m,a){y=a;return ""});
+  return {q:q.trim()||t,y:y};
+}
+function pickBest(res,it,y){
+  var r=res.filter(function(x){return x.media_type==="movie"||x.media_type==="tv"});
+  var want=it.type==="series"?"tv":"movie";
+  function yr(x){return (x.release_date||x.first_air_date||"").slice(0,4)}
+  var c=r.filter(function(x){return x.media_type===want});
+  if(!c.length)c=r;
+  if(y){var cy=c.filter(function(x){return yr(x)===y});if(cy.length)c=cy}
+  return c[0]||null;
+}
+function fillOne(it){
+  var c=cleanQ(it.title);
+  return tget("/search/multi","&include_adult=false&query="+encodeURIComponent(c.q)).then(function(d){
+    var b=pickBest(d.results||[],it,c.y);
+    if(!b)return false;
+    return tget("/"+b.media_type+"/"+b.id,"&append_to_response=credits").then(function(dd){
+      if(!it.year)it.year=(dd.release_date||dd.first_air_date||"").slice(0,4);
+      if(!(it.genres&&it.genres.length))it.genres=(dd.genres||[]).map(function(g){return GMAP[g.name]||g.name});
+      if(!it.dir){var ds=b.media_type==="tv"?(dd.created_by||[]):((dd.credits&&dd.credits.crew)||[]).filter(function(x){return x.job==="Director"});it.dir=ds.map(function(x){return x.name}).join(", ")}
+      if(!it.poster&&dd.poster_path){
+        return new Promise(function(res){fitPoster("https://image.tmdb.org/t/p/w185"+dd.poster_path,function(p){it.poster=p;res(true)},true)});
+      }
+      return !!it.poster;
+    });
+  });
+}
+function bulkRun(){
+  if(bulk.run)return;
+  if(!key()){bmsg("Сначала впиши и сохрани ключ TMDB.");return}
+  var todo=items.filter(function(x){return !x.poster});
+  if(!todo.length){bmsg("У всех записей уже есть постеры.");return}
+  bulk={run:true,stop:false};
+  var i=0,ok=0,errs=0,miss=[];
+  function finish(note){
+    bulk.run=false;save();draw();
+    var t=note||("Готово: постеры найдены для "+ok+" из "+todo.length+".");
+    if(miss.length&&!note)t+=" Не нашлось: "+miss.slice(0,12).join(", ")+(miss.length>12?" и ещё "+(miss.length-12):"")+".";
+    bmsg(t);
+  }
+  function next(){
+    if(bulk.stop){finish("Остановлено. Найдено постеров: "+ok+". Запусти ещё раз, чтобы продолжить.");return}
+    if(i>=todo.length){finish();return}
+    var it=todo[i++];
+    bmsg("Обработано "+(i-1)+" из "+todo.length+", найдено "+ok+"…");
+    fillOne(it).then(function(f){errs=0;if(f)ok++;else miss.push(it.title)})
+    .catch(function(){errs++;miss.push(it.title)})
+    .then(function(){
+      if(errs>=5){finish("Остановлено: запросы не проходят. Проверь VPN, интернет и ключ. Найдено постеров: "+ok+".");return}
+      if(i%10===0){save();draw()}
+      setTimeout(next,120);
+    });
+  }
+  next();
+}
 document.addEventListener("click",function(ev){
   var t=ev.target.closest("button,.ov");if(!t)return;
   if(t.id==="ov"&&ev.target===t){close();return}
